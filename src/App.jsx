@@ -48,9 +48,9 @@ function App() {
     <>
       <Header showForm={showForm} setShowForm={setShowForm} />
 
-      {showForm ? (
-        <NewFactForm setFacts={setFacts} setShowForm={setShowForm} />
-      ) : null}
+       {showForm ? ( 
+         <NewFactForm setFacts={setFacts} setShowForm={setShowForm} />
+       ) : null} 
       <main className="main">
         <CategoryFilter setCurrentCategory={setCurrentCategory} />
         {isLoading ? (
@@ -63,6 +63,83 @@ function App() {
   );
 }
 
+function isValidHttpUrl(string) {
+  let url;
+  try {
+    url = new URL(string);
+  } catch (_) {
+    return false;
+  }
+  return url.protocol === 'http:' || url.protocol === 'https:';
+}
+
+function NewFactForm({ setFacts, setShowForm }) {
+  const [text, setText] = useState('');
+  // Fixed in a video text overlay
+  const [source, setSource] = useState('');
+  const [category, setCategory] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const textLength = text.length;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    console.log(text, source, category);
+
+    if (text && isValidHttpUrl(source) && category && textLength <= 500) {
+
+      setIsUploading(true);
+      const { data: newFact, error } = await supabase
+        .from('facts')
+        .insert([{ text, source, category }])
+        .select();
+      setIsUploading(false);
+
+      if (!error) setFacts((facts) => [newFact[0], ...facts]);
+
+      setText('');
+      setSource('');
+      setCategory('');
+
+      setShowForm(false);
+    }
+  }
+
+  return (
+    <form className='fact-form' onSubmit={handleSubmit}>
+      <input
+        type='text'
+        placeholder='Share a fact with the world...'
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        disabled={isUploading}
+      />
+      <span>{200 - textLength}</span>
+      <input
+        value={source}
+        type='text'
+        placeholder='Source'
+        onChange={(e) => setSource(e.target.value)}
+        disabled={isUploading}
+      />
+      <select
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+        disabled={isUploading}
+      >
+        <option value=''>Choose category:</option>
+        {CATEGORIES.map((cat) => (
+          <option key={cat.name} value={cat.name}>
+            {cat.name.toUpperCase()}
+          </option>
+        ))}
+      </select>
+      <button className='btn btn-large' disabled={isUploading}>
+        Post
+      </button>
+    </form>
+  );
+}
+
 function Loader() {
   return <p>Loading...</p>;
 }
@@ -70,6 +147,7 @@ function Loader() {
 function Header({ showForm, setShowForm }) {
   const title = "Fun Facts";
 
+  return(
   <header className="header">
     <div className="logo">
       <img src="logo.png" height="68" width="68" alt="Today I Learned Logo" />
@@ -81,17 +159,18 @@ function Header({ showForm, setShowForm }) {
     >
       {showForm ? "Close" : "Share a Fact"}
     </button>
-  </header>;
+  </header>
+  )
 }
 
-function CategoryFilter(setCurrentCategory) {
+function CategoryFilter({setCurrentCategory}) {
   return (
     <aside>
       <ul>
         <li>
           <button
             className="btn btn-all"
-            onClick={() => setCurrentCategory("all")}
+            onClick={() => {setCurrentCategory("all")}}
           >
             All
           </button>
@@ -101,7 +180,7 @@ function CategoryFilter(setCurrentCategory) {
             <button
               className="btn btn-category"
               style={{ backgroundColor: category.color }}
-              onClick={() => setCurrentCategory(category.name)}
+              onClick={() => {setCurrentCategory(category.name)}}
             >
               {category.name}
             </button>
@@ -118,7 +197,7 @@ function Fact({ fact, setFacts }) {
     setIsUpdating(true);
     const { data: updatedFact, error } = await supabase
       .from("fact")
-      .update({ [columnName]: fact[columnName] + 1 })
+      .update({ [columnName]: fact[columnName] += 1 })
       .eq("id", fact.id)
       .select();
     setIsUpdating(false);
